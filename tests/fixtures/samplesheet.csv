@@ -1,0 +1,3 @@
+sample,hla,expression
+SAMPLE_A,HLA-A*02:01;HLA-B*07:02,tests/fixtures/expr/SAMPLE_A.tsv
+SAMPLE_B,HLA-A*01:01,

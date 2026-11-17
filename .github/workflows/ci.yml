@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analysis:
+    name: Analysis tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: analysis/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r analysis/requirements.txt
+
+      - name: Run tests
+        run: python -m pytest analysis/ -v
+
+  workflow_lint:
+    name: Nextflow syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: nf-core/setup-nextflow@v2
+
+      # Parses main.nf and resolves params without running any process.
+      - name: Check workflow parses
+        run: nextflow run . --help
+
+      # Exercises the whole channel graph with stub scripts: no containers, no
+      # reference data, seconds to run. Catches wiring mistakes before compute
+      # is spent. Expect 11 tasks: 2 samples x 3 prep steps, 1 expression
+      # annotation (SAMPLE_A only), and 2 samples x 2 predictors.
+      - name: Stub run
+        run: |
+          nextflow run . -stub-run \
+            --input tests/fixtures/samplesheet.csv \
+            --maf tests/fixtures/test.maf \
+            --ref_fasta tests/fixtures/GRCh37.fa \
+            --vep_cache tests/fixtures/vep_cache \
+            --vep_plugins tests/fixtures/VEP_plugins \
+            --predictors 'MHCflurry,NetMHCpan' \
+            --outdir stub_results
+
+      - name: Check expected outputs exist
+        run: |
+          set -euo pipefail
+          for f in \
+            stub_results/pvacseq/SAMPLE_A/MHCflurry/MHC_Class_I/SAMPLE_A.filtered.tsv \
+            stub_results/pvacseq/SAMPLE_A/NetMHCpan/MHC_Class_I/SAMPLE_A.filtered.tsv \
+            stub_results/pvacseq/SAMPLE_B/MHCflurry/MHC_Class_I/SAMPLE_B.filtered.tsv \
+            stub_results/pvacseq/SAMPLE_B/NetMHCpan/MHC_Class_I/SAMPLE_B.filtered.tsv \
+            stub_results/vep/SAMPLE_A.expr.vcf
+          do
+            test -f "$f" || { echo "missing: $f"; exit 1; }
+          done
+          # SAMPLE_B has no expression file, so it must skip annotation.
+          test ! -f stub_results/vep/SAMPLE_B.expr.vcf \
+            || { echo "SAMPLE_B should not be expression-annotated"; exit 1; }
+          echo "all expected outputs present"
+
+  shellcheck:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck bin/*.sh

@@ -1,0 +1,25 @@
+AI_README.md
+
+# Nextflow
+work/
+.nextflow/
+.nextflow.log*
+results/
+
+# Reference and input data (large, downloaded)
+ref/
+data/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# CI stub run output
+stub_results/
