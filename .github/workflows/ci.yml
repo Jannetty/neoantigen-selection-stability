@@ -45,12 +45,14 @@ jobs:
       # reference data, seconds to run. Catches wiring mistakes before compute
       # is spent. Expect 11 tasks: 2 samples x 3 prep steps, 1 expression
       # annotation (SAMPLE_A only), and 2 samples x 2 predictors.
-      # --max_cpus keeps labelled requests under the runner's core count
-      # (ubuntu-latest has 4); the local executor rejects any task asking for more.
+      # --max_cpus/--max_memory keep labelled requests under the runner's limits
+      # (ubuntu-latest: 4 cores, ~15.6 GB); the local executor rejects any task
+      # asking for more, even in stub mode.
       - name: Stub run
         run: |
           nextflow run . -stub-run \
             --max_cpus 2 \
+            --max_memory 4.GB \
             --input tests/fixtures/samplesheet.csv \
             --maf tests/fixtures/test.maf \
             --ref_fasta tests/fixtures/GRCh37.fa \
