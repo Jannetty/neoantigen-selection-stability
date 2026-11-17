@@ -1,0 +1,1 @@
+I am using this repo to learn about using Nextflow for bioinformatics pipelines, and about analyses underlying neoangigen selection. I'm relying heavily on AI for parts of this, none of this should be considered production code (you should not assume it is functional). Just a personal sandbox for learning and experimentation.
